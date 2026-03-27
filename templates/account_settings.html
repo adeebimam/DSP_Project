@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+    <section class="container" style="max-width:550px;">
+        <h1>Account Settings</h1>
+        <form style="width:100%;">
+            <div class="form-group">
+                <label>First Name</label>
+                <input type="text" value="{{ user.first_name }}" readonly>
+            </div>
+            <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" value="{{ user.last_name }}" readonly>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" value="{{ user.email }}" readonly>
+            </div>
+        </form>
+        <form method="POST" action="/delete-account" onsubmit="return confirm('Are you sure you want to delete your account? This action cannot be undone.');" style="width:100%;">
+            <button type="submit" class="btn" style="background:#EF4444; color:#fff;">Delete Account</button>
+        </form>
+    </section>
+</div>
+{% endblock %}

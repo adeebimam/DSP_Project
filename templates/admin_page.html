@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrap">
+    {% if admin_flash %}
+    <div class="flash-message flash-success">{{ admin_flash }}</div>
+    {% endif %}
+    <div class="dashboard-header">
+        <h1 style="color:#EF4444;">ADMIN DASHBOARD</h1>
+        <p class="date-display">All Registered Users</p>
+    </div>
+    <div class="dash-card">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Email</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.first_name }}</td>
+                        <td>{{ user.last_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <form method="POST" action="/admin-delete-user/{{ user.id }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                <button type="submit" class="btn-small btn-delete">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

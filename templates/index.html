@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+    <section class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div>
+            {% for category, message in messages %}
+                <div class="notification{% if category == 'success' %} success{% endif %}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        <div style="width:100%;">
+            <h1 style="color:#4F46E5; font-size:2.2rem; margin-bottom:0.2em; white-space:nowrap;">Cloud Expense Tracker</h1>
+            <h2 style="color:#6B7280; font-size:1.1rem; font-weight:400; margin-top:0; margin-bottom:2em;">A multiuser finance system</h2>
+            <h1>Login</h1>
+            <form method="POST" action="/login">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div style="position:relative;">
+                        <input type="password" id="password" name="password" required style="padding-right:2.5rem;">
+                        <span onclick="togglePassword('password', this)" style="position:absolute; right:0.7rem; top:50%; transform:translateY(-50%); cursor:pointer; color:#6B7280;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </span>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+            <p style="margin-top:1.5rem; text-align:center;">
+                <a href="/signup" class="btn-link">Don't have an account? Sign up</a>
+            </p>
+            <p style="text-align:center;">
+                <a href="/forgot-password" class="btn-link">Forgot password?</a>
+            </p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePassword(id, el) {
+    var input = document.getElementById(id);
+    if (input.type === "password") {
+        input.type = "text";
+        el.style.opacity = 0.6;
+    } else {
+        input.type = "password";
+        el.style.opacity = 1;
+    }
+}
+</script>
+{% endblock %}

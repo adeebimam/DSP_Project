@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Expense Tracker{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    {% if session.get('user_id') %}
+    <!-- Logged-in navbar -->
+    <nav class="topnav">
+        <div class="topnav-brand">💰 Expense Tracker</div>
+        <div class="topnav-links">
+            <a href="{{ url_for('dashboard') }}" class="topnav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a>
+            <a href="{{ url_for('add_expense') }}" class="topnav-link {% if request.endpoint == 'add_expense' %}active{% endif %}">Add Expense</a>
+            <a href="{{ url_for('account_settings') }}" class="topnav-link {% if request.endpoint == 'account_settings' %}active{% endif %}">Account</a>
+            <a href="{{ url_for('logout') }}" class="topnav-link topnav-link-logout">Logout</a>
+        </div>
+    </nav>
+    {% else %}
+    <!-- Public navbar -->
+    <nav class="topnav">
+        <div class="topnav-brand">💰 Expense Tracker</div>
+        <div class="topnav-links">
+            <a href="{{ url_for('login') }}" class="topnav-link {% if request.endpoint == 'login' or request.endpoint == 'login_post' %}active{% endif %}">Login</a>
+            <a href="{{ url_for('signup') }}" class="topnav-link {% if request.endpoint == 'signup' %}active{% endif %}">Sign Up</a>
+        </div>
+    </nav>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

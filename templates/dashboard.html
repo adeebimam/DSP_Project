@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Expense Tracker{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrap">
+    <div class="dashboard-header">
+        <h1>Welcome, {{ user_name }}</h1>
+        <p class="date-display">{{ current_date.strftime('%A, %d %B %Y') }}</p>
+    </div>
+
+    {% if dashboard_flash %}
+    <div class="flash-message flash-success">{{ dashboard_flash }}</div>
+    {% endif %}
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="summary-icon">📊</div>
+            <div class="summary-info">
+                <span class="summary-label">Monthly Spending</span>
+                <span class="summary-value">£{{ "%.2f"|format(monthly_total) }}</span>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon">🎯</div>
+            <div class="summary-info">
+                <span class="summary-label">Monthly Budget</span>
+                <span class="summary-value">£{{ "%.2f"|format(monthly_budget) }}</span>
+            </div>
+        </div>
+        <div class="summary-card {% if budget_remaining is not none and budget_remaining < 0 %}card-danger{% elif budget_remaining is not none and monthly_budget > 0 and budget_remaining < monthly_budget * 0.2 %}card-warning{% else %}card-success{% endif %}">
+            <div class="summary-icon">💰</div>
+            <div class="summary-info">
+                <span class="summary-label">Remaining</span>
+                {% if budget_remaining is not none %}
+                <span class="summary-value">£{{ "%.2f"|format(budget_remaining) }}</span>
+                {% else %}
+                <span class="summary-value">No budget set</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-icon">🧾</div>
+            <div class="summary-info">
+                <span class="summary-label">Total Expenses</span>
+                <span class="summary-value">{{ expenses|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Warning -->
+    {% if budget_remaining is not none and budget_remaining < 0 %}
+    <div class="flash-message flash-danger">
+        ⚠️ You have exceeded your monthly budget by £{{ "%.2f"|format(budget_remaining|abs) }}!
+    </div>
+    {% elif budget_remaining is not none and monthly_budget > 0 and budget_remaining < monthly_budget * 0.2 %}
+    <div class="flash-message flash-warning">
+        ⚡ Warning: You have only £{{ "%.2f"|format(budget_remaining) }} left in your budget this month.
+    </div>
+    {% endif %}
+
+    <!-- Set Budget Form -->
+    <div class="dash-card budget-card">
+        <h3>Set Monthly Budget</h3>
+        <form action="{{ url_for('set_budget') }}" method="POST" class="budget-form">
+            <input type="number" name="monthly_budget" step="0.01" min="0" placeholder="Enter monthly budget" value="{{ monthly_budget if monthly_budget else '' }}" required>
+            <button type="submit" class="btn btn-primary btn-inline">Update Budget</button>
+        </form>
+    </div>
+
+    <!-- Budget Progress Bar -->
+    {% if monthly_budget and monthly_budget > 0 %}
+    <div class="dash-card">
+        <h3>Budget Usage</h3>
+        <div class="progress-bar-container">
+            {% set percentage = (monthly_total / monthly_budget * 100) %}
+            <div class="progress-bar {% if percentage > 100 %}progress-danger{% elif percentage > 80 %}progress-warning{% else %}progress-success{% endif %}" style="width: {{ [percentage, 100] | min }}%">
+                {{ "%.0f"|format(percentage) }}%
+            </div>
+        </div>
+        <p class="progress-text">£{{ "%.2f"|format(monthly_total) }} of £{{ "%.2f"|format(monthly_budget) }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+        <div class="dash-card chart-card">
+            <h3>Spending by Category</h3>
+            <canvas id="categoryChart"></canvas>
+        </div>
+        <div class="dash-card chart-card">
+            <h3>Daily Spending (This Month)</h3>
+            <canvas id="dailyChart"></canvas>
+        </div>
+        <div class="dash-card chart-card">
+            <h3>Monthly Trend (Last 6 Months)</h3>
+            <canvas id="monthlyChart"></canvas>
+        </div>
+        <div class="dash-card chart-card">
+            <h3>By Payment Method</h3>
+            <canvas id="paymentChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Expenses Table -->
+    <div class="dash-card">
+        <div class="table-header">
+            <h3>Recent Expenses</h3>
+            <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-inline">+ Add Expense</a>
+        </div>
+        {% if expenses %}
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Merchant</th>
+                        <th>Payment</th>
+                        <th>Amount</th>
+                        <th>Note</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                    <tr>
+                        <td>{{ expense.date.strftime('%d %b %Y') }}</td>
+                        <td><span class="category-badge">{{ expense.category }}</span></td>
+                        <td>{{ expense.merchant or '-' }}</td>
+                        <td>{{ expense.payment_method or '-' }}</td>
+                        <td class="amount-cell">£{{ "%.2f"|format(expense.amount) }}</td>
+                        <td>{{ expense.note or '-' }}</td>
+                        <td class="actions-cell">
+                            <a href="{{ url_for('edit_expense', expense_id=expense.id) }}" class="btn-small btn-edit">Edit</a>
+                            <form action="{{ url_for('delete_expense', expense_id=expense.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this expense?')">
+                                <button type="submit" class="btn-small btn-delete">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No expenses yet. Start tracking your spending!</p>
+            <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-inline">Add Your First Expense</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const chartColors = [
+        '#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EF4444',
+        '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1'
+    ];
+
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(categoryCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ category_labels|safe }},
+            datasets: [{
+                data: {{ category_values|safe }},
+                backgroundColor: chartColors,
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 15, font: { family: 'Inter' } } }
+            }
+        }
+    });
+
+    const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+    new Chart(dailyCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ daily_labels|safe }},
+            datasets: [{
+                label: 'Daily Spending (£)',
+                data: {{ daily_values|safe }},
+                backgroundColor: '#4F46E5',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { callback: function(v) { return '£' + v; } } },
+                x: { ticks: { maxRotation: 45 } }
+            }
+        }
+    });
+
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: {{ monthly_labels|safe }},
+            datasets: [{
+                label: 'Monthly Spending (£)',
+                data: {{ monthly_values|safe }},
+                borderColor: '#10B981',
+                backgroundColor: 'rgba(16,185,129,0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointBackgroundColor: '#10B981'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '£' + v; } } } }
+        }
+    });
+
+    const paymentCtx = document.getElementById('paymentChart').getContext('2d');
+    new Chart(paymentCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ payment_labels|safe }},
+            datasets: [{
+                data: {{ payment_values|safe }},
+                backgroundColor: chartColors,
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 15, font: { family: 'Inter' } } }
+            }
+        }
+    });
+</script>
+{% endblock %}
