@@ -312,7 +312,6 @@ def init_db():
     for attempt in range(max_retries):
         try:
             with app.app_context():
-                db.drop_all()   # Drop old tables to apply schema changes
                 db.create_all()
             print("✅ Database tables created successfully.")
             return
