@@ -1,10 +1,10 @@
-# ☁️ Cloud Expense Tracker
+# Cloud Expense Tracker
 
 A **cloud-based multiuser expense management system** built with Flask and SQLite. Track your daily spending, set budgets, visualise your finances with interactive charts, and manage your account — all from a modern, responsive web interface.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
@@ -18,7 +18,7 @@ A **cloud-based multiuser expense management system** built with Flask and SQLit
 
 ---
 
-## ✅ Features
+## Features
 
 ### Core Functionality
 - **Multi-user authentication** — Sign up, log in, log out with secure password hashing (Werkzeug)
@@ -27,10 +27,10 @@ A **cloud-based multiuser expense management system** built with Flask and SQLit
 - **Budget monitoring** — Set a monthly budget, see a progress bar, and receive warnings when nearing or exceeding the limit
 
 ### Data Visualisation (Chart.js)
-- 📊 **Pie chart** — Spending by category (current month)
-- 📉 **Bar chart** — Daily spending breakdown (current month)
-- 📈 **Line chart** — Monthly spending trend (last 6 months)
-- 🍩 **Doughnut chart** — Spending by payment method (current month)
+-  **Pie chart** — Spending by category (current month)
+-  **Bar chart** — Daily spending breakdown (current month)
+-  **Line chart** — Monthly spending trend (last 6 months)
+-  **Doughnut chart** — Spending by payment method (current month)
 
 ### Admin Panel
 - Admin users can view all registered users and delete accounts
@@ -48,7 +48,7 @@ A **cloud-based multiuser expense management system** built with Flask and SQLit
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 | Layer        | Technology                        |
 |--------------|-----------------------------------|
@@ -61,7 +61,7 @@ A **cloud-based multiuser expense management system** built with Flask and SQLit
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 DSP_final_project/
@@ -90,7 +90,7 @@ DSP_final_project/
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### Prerequisites
 - Python 3.10+
@@ -129,20 +129,7 @@ The database (`instance/expenses.db`) will be created automatically on first run
 
 ---
 
-## 💡 Usage
-
-### Test Accounts
-
-| Role   | Email               | Password       |
-|--------|---------------------|----------------|
-| Admin  | admin@admin.com     | adminpassword  |
-| User   | adeebimam@test.com  | 123456789      |
-| User   | adeeb@imam.com      | 123456789      |
-
-To create the admin account manually:
-```bash
-python3 create_admin.py
-```
+## Usage
 
 ### Workflow
 1. **Sign up** or **log in** with your credentials
@@ -154,7 +141,7 @@ python3 create_admin.py
 
 ---
 
-## 🗄 Database Schema
+## Database Schema
 
 ### User
 | Column          | Type         | Description                  |
@@ -181,7 +168,7 @@ python3 create_admin.py
 
 ---
 
-## 🌐 Routes & API
+## Routes & API
 
 | Method | Route                           | Description                     | Auth Required |
 |--------|---------------------------------|---------------------------------|---------------|
@@ -203,7 +190,7 @@ python3 create_admin.py
 
 ---
 
-## 🔮 Future Improvements
+## Future Improvements
 
 - [ ] Cloud database migration (PostgreSQL via Supabase/Render)
 - [ ] Cloud deployment (Render/Vercel)
@@ -217,13 +204,13 @@ python3 create_admin.py
 
 ---
 
-## 📄 License
+## License
 
 This project was developed as part of a university Digital Solutions Project (DSP).
 
 ---
 
-## 👤 Author
+## Author
 
 **Adeeb Imam**  
 Computer Science — Year 3
