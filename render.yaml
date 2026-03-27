@@ -8,6 +8,7 @@ services:
   - type: web
     name: cloud-expense-tracker
     runtime: python
+    region: frankfurt
     plan: free
     buildCommand: "./build.sh"
     startCommand: "gunicorn app:app"

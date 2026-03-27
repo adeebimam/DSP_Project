@@ -305,8 +305,26 @@ def reset_password():
         return redirect(url_for('login'))
     return render_template('reset_password.html', email=email)
 
-with app.app_context():
-    db.create_all()
+def init_db():
+    """Initialize database tables with retry logic for cloud deployments."""
+    import time
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            with app.app_context():
+                db.create_all()
+            print("✅ Database tables created successfully.")
+            return
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait = 2 ** attempt  # Exponential backoff: 1, 2, 4, 8, 16 seconds
+                print(f"⏳ Database not ready (attempt {attempt + 1}/{max_retries}), retrying in {wait}s... Error: {e}")
+                time.sleep(wait)
+            else:
+                print(f"❌ Could not connect to database after {max_retries} attempts: {e}")
+                raise
+
+init_db()
 
 if __name__ == '__main__':
     app.run(debug=os.environ.get('FLASK_ENV') == 'development')
