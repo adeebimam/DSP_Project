@@ -3,11 +3,22 @@ from model import db, Expense, User
 from datetime import date, datetime
 from collections import defaultdict
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env file for local development
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///expenses.db'
+
+# Database configuration — supports PostgreSQL (Render) and SQLite (local)
+database_url = os.environ.get('DATABASE_URL', 'sqlite:///expenses.db')
+# Render uses "postgres://" but SQLAlchemy requires "postgresql://"
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'your_secret_key_here'  # Replace with a secure key
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'fallback-dev-key-change-me')
 
 db.init_app(app)
 
@@ -294,7 +305,8 @@ def reset_password():
         return redirect(url_for('login'))
     return render_template('reset_password.html', email=email)
 
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
+    app.run(debug=os.environ.get('FLASK_ENV') == 'development')

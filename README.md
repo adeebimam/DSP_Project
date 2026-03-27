@@ -1,6 +1,6 @@
 # Cloud Expense Tracker
 
-A **cloud-based multiuser expense management system** built with Flask and SQLite. Track your daily spending, set budgets, visualise your finances with interactive charts, and manage your account — all from a modern, responsive web interface.
+A **cloud-based multiuser expense management system** built with Flask and PostgreSQL. Track your daily spending, set budgets, visualise your finances with interactive charts, and manage your account — all from a modern, responsive web interface.
 
 ---
 
@@ -50,14 +50,16 @@ A **cloud-based multiuser expense management system** built with Flask and SQLit
 
 ## Tech Stack
 
-| Layer        | Technology                        |
-|--------------|-----------------------------------|
-| **Backend**  | Python 3, Flask, SQLAlchemy       |
-| **Database** | SQLite (local)                    |
-| **Frontend** | HTML5, CSS3, Jinja2 templates     |
-| **Charts**   | Chart.js (CDN)                    |
-| **Fonts**    | Google Fonts (Inter)              |
-| **Auth**     | Werkzeug password hashing         |
+| Layer        | Technology                                |
+|--------------|-------------------------------------------|
+| **Backend**  | Python 3, Flask, SQLAlchemy, Gunicorn     |
+| **Database** | PostgreSQL (Render) / SQLite (local dev)  |
+| **Frontend** | HTML5, CSS3, Jinja2 templates             |
+| **Charts**   | Chart.js (CDN)                            |
+| **Fonts**    | Google Fonts (Inter)                      |
+| **Auth**     | Werkzeug password hashing                 |
+| **Hosting**  | Render (Web Service + PostgreSQL)         |
+| **Testing**  | pytest                                    |
 
 ---
 
@@ -67,16 +69,20 @@ A **cloud-based multiuser expense management system** built with Flask and SQLit
 DSP_final_project/
 ├── app.py                  # Main Flask application (routes & logic)
 ├── model.py                # SQLAlchemy database models (User, Expense)
+├── tests.py                # pytest unit tests (35 tests)
+├── requirements.txt        # Python dependencies
+├── build.sh                # Render build script
+├── render.yaml             # Render deployment blueprint
 ├── create_admin.py         # Script to create an admin user
 ├── find_and_inspect_db.py  # Utility to inspect the database
-├── accounts.txt            # Test account credentials
+├── .env                    # Local environment variables (not committed)
 ├── .gitignore              # Git ignore rules
 ├── instance/
-│   └── expenses.db         # SQLite database (auto-generated)
+│   └── expenses.db         # SQLite database (local dev, auto-generated)
 ├── static/
 │   └── style.css           # All CSS styles
 └── templates/
-    ├── base.html            # Base template with navbar
+    ├── base.html            # Base template with navbar & flash messages
     ├── index.html           # Login page
     ├── signup.html          # Sign up page
     ├── dashboard.html       # Main dashboard with charts & budget
@@ -96,7 +102,7 @@ DSP_final_project/
 - Python 3.10+
 - pip
 
-### Steps
+### Local Development
 
 1. **Clone the repository:**
    ```bash
@@ -112,7 +118,7 @@ DSP_final_project/
 
 3. **Install dependencies:**
    ```bash
-   pip install flask flask-sqlalchemy werkzeug
+   pip install -r requirements.txt
    ```
 
 4. **Run the application:**
@@ -125,7 +131,26 @@ DSP_final_project/
    http://127.0.0.1:5000
    ```
 
-The database (`instance/expenses.db`) will be created automatically on first run.
+The database (`instance/expenses.db`) will be created automatically on first run (SQLite for local dev).
+
+### Running Tests
+
+```bash
+python3 -m pytest tests.py -v
+```
+
+### Cloud Deployment (Render)
+
+1. Push your code to GitHub
+2. Go to [render.com](https://render.com) → **New** → **Blueprint**
+3. Connect your GitHub repo — Render will auto-detect `render.yaml`
+4. Render will:
+   - Create a PostgreSQL database
+   - Set `DATABASE_URL`, `FLASK_SECRET_KEY` automatically
+   - Build with `build.sh` and start with `gunicorn app:app`
+5. Your app will be live at `https://your-app.onrender.com`
+
+> **Manual setup:** If not using Blueprint, create a **Web Service** and a **PostgreSQL** database on Render. Set `DATABASE_URL` (from DB), `FLASK_SECRET_KEY` (generate one), and `FLASK_ENV=production` as environment variables.
 
 ---
 
@@ -192,11 +217,11 @@ The database (`instance/expenses.db`) will be created automatically on first run
 
 ## Future Improvements
 
-- [ ] Cloud database migration (PostgreSQL via Supabase/Render)
-- [ ] Cloud deployment (Render/Vercel)
-- [ ] Unit testing with pytest
+- [x] Cloud database migration (PostgreSQL via Render)
+- [x] Cloud deployment (Render with Gunicorn)
+- [x] Unit testing with pytest (35 tests)
+- [x] Secure secret key via environment variables
 - [ ] CSRF protection (Flask-WTF)
-- [ ] Secure secret key via environment variables
 - [ ] Receipt scanning (OCR)
 - [ ] AI-powered spending predictions
 - [ ] Export expenses to CSV/PDF
