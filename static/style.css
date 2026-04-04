@@ -685,7 +685,7 @@ tr:hover td {
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
     padding: 2.5rem;
-    max-width: 640px;
+    max-width: 720px;
     width: 100%;
     transition: box-shadow 0.2s;
 }
@@ -721,6 +721,10 @@ tr:hover td {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.2rem;
+}
+
+.form-row > .form-group-modern {
+    min-width: 0;
 }
 
 .form-group-modern {
