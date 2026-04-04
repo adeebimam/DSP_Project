@@ -6,7 +6,7 @@
 <div class="page-wrap">
     <div class="form-page">
         <div class="form-page-header">
-            <h1>⚙️ Account Settings</h1>
+            <h1>Account Settings</h1>
             <p class="form-page-subtitle">Manage your profile and account preferences.</p>
         </div>
 
@@ -21,7 +21,7 @@
 
         <!-- Account Details -->
         <div class="account-details-card">
-            <h3>📋 Profile Details</h3>
+            <h3>Profile Details</h3>
             <div class="detail-grid">
                 <div class="detail-item">
                     <span class="detail-label">First Name</span>
@@ -44,7 +44,7 @@
             <p class="danger-zone-text">Permanently delete your account and all associated data. This action cannot be undone.</p>
             <form method="POST" action="/delete-account" onsubmit="return confirm('Are you sure you want to delete your account? This action cannot be undone.');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-danger-outline btn-form">🗑️ Delete Account</button>
+                <button type="submit" class="btn btn-danger-outline btn-form">Delete Account</button>
             </form>
         </div>
     </div>

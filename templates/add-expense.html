@@ -6,7 +6,7 @@
 <div class="page-wrap">
     <div class="form-page">
         <div class="form-page-header">
-            <h1>➕ Add Expense</h1>
+            <h1>Add Expense</h1>
             <p class="form-page-subtitle">Track a new expense by filling out the details below.</p>
         </div>
 
@@ -17,7 +17,7 @@
             <div class="form-row">
                 <div class="form-group-modern">
                     <label for="amount">
-                        <span class="label-icon">💷</span> Amount
+                        Amount
                     </label>
                     <div class="input-with-prefix">
                         <span class="input-prefix">£</span>
@@ -26,7 +26,7 @@
                 </div>
                 <div class="form-group-modern">
                     <label for="date">
-                        <span class="label-icon">📅</span> Date
+                       Date
                     </label>
                     <input type="date" id="date" name="date" required
                         value="{{ date if date else current_date }}"
@@ -38,30 +38,29 @@
             <div class="form-row">
                 <div class="form-group-modern">
                     <label for="category">
-                        <span class="label-icon">📁</span> Category
+                     Category
                     </label>
                     <select id="category" name="category" required>
                         <option value="">Select category...</option>
-                        <option value="Food">🍔 Food</option>
-                        <option value="Transport">🚌 Transport</option>
-                        <option value="Books">📚 Books</option>
-                        <option value="Shopping">🛍️ Shopping</option>
-                        <option value="Bills">📄 Bills</option>
-                        <option value="Entertainment">🎬 Entertainment</option>
-                        <option value="Other">📦 Other</option>
+                        <option value="Food">Food</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Books">Books</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
                 <div class="form-group-modern">
                     <label for="payment_method">
-                        <span class="label-icon">💳</span> Payment Method
                     </label>
                     <select id="payment_method" name="payment_method">
                         <option value="">Select method...</option>
-                        <option value="Cash">💵 Cash</option>
-                        <option value="Credit Card">💳 Credit Card</option>
-                        <option value="Debit Card">🏦 Debit Card</option>
-                        <option value="Online">🌐 Online</option>
-                        <option value="Other">📦 Other</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Debit Card">Debit Card</option>
+                        <option value="Online">Online</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
             </div>
@@ -69,7 +68,7 @@
             <!-- Merchant -->
             <div class="form-group-modern">
                 <label for="merchant">
-                    <span class="label-icon">🏪</span> Merchant
+                    Merchant
                 </label>
                 <input type="text" id="merchant" name="merchant" value="{{ merchant or '' }}" placeholder="e.g. Tesco, Amazon, Starbucks...">
             </div>
@@ -77,21 +76,21 @@
             <!-- Note -->
             <div class="form-group-modern">
                 <label for="note">
-                    <span class="label-icon">📝</span> Note <span class="label-optional">(optional)</span>
+                    Note <span class="label-optional">(optional)</span>
                 </label>
                 <textarea id="note" name="note" rows="3" placeholder="Add any extra details..."></textarea>
             </div>
 
             <!-- Action Buttons -->
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary btn-form">💾 Save Expense</button>
+                <button type="submit" class="btn btn-primary btn-form">Save Expense</button>
                 <a href="/dashboard" class="btn btn-cancel btn-form">Cancel</a>
             </div>
         </form>
 
         <!-- Quick Link -->
         <div class="form-footer">
-            <p>Have a receipt? <a href="{{ url_for('scan_receipt') }}" class="link-primary">📷 Scan it instead</a></p>
+            <p>Have a receipt? <a href="{{ url_for('scan_receipt') }}" class="link-primary">Scan it instead</a></p>
         </div>
     </div>
 </div>
