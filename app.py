@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, Response, jsonify
 from flask_wtf.csrf import CSRFProtect
+from werkzeug.middleware.proxy_fix import ProxyFix
 from model import db, Expense, User
 from datetime import date, datetime
 from collections import defaultdict
@@ -14,6 +15,11 @@ load_dotenv()  # Load .env file for local development
 
 app = Flask(__name__)
 
+# Trust reverse proxy headers (Render, Heroku, etc.)
+# This ensures Flask sees the correct HTTPS scheme, host, and client IP
+# so that session cookies, CSRF checks, and url_for() work correctly.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 # Database configuration — supports PostgreSQL (Render) and SQLite (local)
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///expenses.db')
 # Render uses "postgres://" but SQLAlchemy requires "postgresql://"
@@ -23,12 +29,20 @@ if database_url.startswith('postgres://'):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'fallback-dev-key-change-me')
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 db.init_app(app)
 csrf = CSRFProtect(app)
 
+import logging
+
+# Set up logging for production debugging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 @app.errorhandler(500)
 def internal_error(error):
+    logger.error(f"500 Internal Server Error: {error}", exc_info=True)
     return f"<h1>500 Internal Server Error</h1><pre>{error}</pre>", 500
 
 @app.route('/', methods=['GET'])
