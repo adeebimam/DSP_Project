@@ -1,7 +1,12 @@
 flask
 flask-sqlalchemy
+flask-wtf
 werkzeug
 pytest
 python-dotenv
 gunicorn
 psycopg2-binary
+pytesseract
+Pillow
+scikit-learn
+numpy

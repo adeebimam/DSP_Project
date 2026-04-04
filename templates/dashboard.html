@@ -68,6 +68,7 @@
     <div class="dash-card budget-card">
         <h3>Set Monthly Budget</h3>
         <form action="{{ url_for('set_budget') }}" method="POST" class="budget-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="number" name="monthly_budget" step="0.01" min="0" placeholder="Enter monthly budget" value="{{ monthly_budget if monthly_budget else '' }}" required>
             <button type="submit" class="btn btn-primary btn-inline">Update Budget</button>
         </form>
@@ -86,6 +87,14 @@
         <p class="progress-text">£{{ "%.2f"|format(monthly_total) }} of £{{ "%.2f"|format(monthly_budget) }}</p>
     </div>
     {% endif %}
+
+    <!-- AI Spending Prediction -->
+    <div class="dash-card" id="prediction-card">
+        <h3>🤖 AI Spending Prediction</h3>
+        <div id="prediction-content" style="text-align:center; padding:1rem 0;">
+            <p style="color:#6B7280;">Loading prediction...</p>
+        </div>
+    </div>
 
     <!-- Charts Section -->
     <div class="charts-grid">
@@ -111,7 +120,10 @@
     <div class="dash-card">
         <div class="table-header">
             <h3>Recent Expenses</h3>
-            <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-inline">+ Add Expense</a>
+            <div class="table-header-actions">
+                <a href="{{ url_for('export_csv') }}" class="btn btn-secondary btn-inline">📥 Export CSV</a>
+                <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-inline">+ Add Expense</a>
+            </div>
         </div>
         {% if expenses %}
         <div class="table-responsive">
@@ -139,6 +151,7 @@
                         <td class="actions-cell">
                             <a href="{{ url_for('edit_expense', expense_id=expense.id) }}" class="btn-small btn-edit">Edit</a>
                             <form action="{{ url_for('delete_expense', expense_id=expense.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this expense?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn-small btn-delete">Delete</button>
                             </form>
                         </td>
@@ -248,5 +261,36 @@
             }
         }
     });
+
+    // ── AI Spending Prediction ──
+    fetch('{{ url_for("predict_spending") }}')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('prediction-content');
+            if (data.prediction !== null) {
+                const confidencePct = Math.round(data.confidence * 100);
+                const confidenceLabel = confidencePct >= 70 ? 'High' : confidencePct >= 40 ? 'Moderate' : 'Low';
+                const confidenceColor = confidencePct >= 70 ? '#10B981' : confidencePct >= 40 ? '#F59E0B' : '#EF4444';
+                container.innerHTML = `
+                    <div style="display:flex; align-items:center; justify-content:center; gap:2rem; flex-wrap:wrap;">
+                        <div>
+                            <p style="color:#6B7280; font-size:0.85rem; margin:0;">Predicted spending for <strong>${data.next_month}</strong></p>
+                            <p style="font-size:2rem; font-weight:700; color:#4F46E5; margin:0.3rem 0;">£${data.prediction.toFixed(2)}</p>
+                        </div>
+                        <div>
+                            <p style="color:#6B7280; font-size:0.85rem; margin:0;">Model Confidence</p>
+                            <p style="font-size:1.3rem; font-weight:700; color:${confidenceColor}; margin:0.3rem 0;">${confidenceLabel} (R² ${confidencePct}%)</p>
+                        </div>
+                    </div>
+                    <p style="color:#9CA3AF; font-size:0.8rem; margin-top:0.8rem;">${data.message} · Linear Regression (scikit-learn)</p>
+                `;
+            } else {
+                container.innerHTML = `<p style="color:#9CA3AF;">${data.message}</p>`;
+            }
+        })
+        .catch(() => {
+            document.getElementById('prediction-content').innerHTML =
+                '<p style="color:#9CA3AF;">Could not load prediction.</p>';
+        });
 </script>
 {% endblock %}

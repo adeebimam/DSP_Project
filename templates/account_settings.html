@@ -4,25 +4,49 @@
 
 {% block content %}
 <div class="page-wrap">
-    <section class="container" style="max-width:550px;">
-        <h1>Account Settings</h1>
-        <form style="width:100%;">
-            <div class="form-group">
-                <label>First Name</label>
-                <input type="text" value="{{ user.first_name }}" readonly>
+    <div class="form-page">
+        <div class="form-page-header">
+            <h1>⚙️ Account Settings</h1>
+            <p class="form-page-subtitle">Manage your profile and account preferences.</p>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="account-profile-card">
+            <div class="profile-avatar">
+                {{ user.first_name[0] | upper }}{{ user.last_name[0] | upper }}
             </div>
-            <div class="form-group">
-                <label>Last Name</label>
-                <input type="text" value="{{ user.last_name }}" readonly>
+            <div class="profile-name">{{ user.first_name }} {{ user.last_name }}</div>
+            <div class="profile-email">{{ user.email }}</div>
+        </div>
+
+        <!-- Account Details -->
+        <div class="account-details-card">
+            <h3>📋 Profile Details</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">First Name</span>
+                    <span class="detail-value">{{ user.first_name }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Last Name</span>
+                    <span class="detail-value">{{ user.last_name }}</span>
+                </div>
+                <div class="detail-item detail-item-full">
+                    <span class="detail-label">Email Address</span>
+                    <span class="detail-value">{{ user.email }}</span>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" value="{{ user.email }}" readonly>
-            </div>
-        </form>
-        <form method="POST" action="/delete-account" onsubmit="return confirm('Are you sure you want to delete your account? This action cannot be undone.');" style="width:100%;">
-            <button type="submit" class="btn" style="background:#EF4444; color:#fff;">Delete Account</button>
-        </form>
-    </section>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="danger-zone-card">
+            <h3>⚠️ Danger Zone</h3>
+            <p class="danger-zone-text">Permanently delete your account and all associated data. This action cannot be undone.</p>
+            <form method="POST" action="/delete-account" onsubmit="return confirm('Are you sure you want to delete your account? This action cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger-outline btn-form">🗑️ Delete Account</button>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Receipt - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+    <section class="container" style="max-width:600px;">
+        <h1>📷 Scan Receipt</h1>
+        <p style="color:#6B7280; text-align:center; margin-bottom:1.5rem;">
+            Upload a photo of your receipt and we'll extract the details using OCR.
+        </p>
+
+        <form method="POST" enctype="multipart/form-data" style="width:100%;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="receipt">Receipt Image</label>
+                <input type="file" id="receipt" name="receipt" accept="image/*" required
+                    style="padding:0.7rem; background:#F9FAFB; border:2px dashed #D1D5DB; border-radius:8px; cursor:pointer;">
+            </div>
+            <button type="submit" class="btn btn-primary">🔍 Scan Receipt</button>
+        </form>
+
+        {% if ocr_text %}
+        <!-- OCR Results -->
+        <div class="ocr-results" style="margin-top:2rem; width:100%;">
+            <h2 style="font-size:1.3rem; color:#4F46E5;">Extracted Results</h2>
+
+            <!-- Extracted Fields -->
+            <div class="dash-card" style="margin-top:1rem;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                    <div>
+                        <span style="color:#6B7280; font-size:0.85rem; font-weight:500;">Amount</span>
+                        <p style="font-size:1.4rem; font-weight:700; color:#1F2937; margin:0.3rem 0;">
+                            {% if extracted_amount %}£{{ extracted_amount }}{% else %}<span style="color:#9CA3AF;">Not detected</span>{% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <span style="color:#6B7280; font-size:0.85rem; font-weight:500;">Merchant</span>
+                        <p style="font-size:1.1rem; font-weight:600; color:#1F2937; margin:0.3rem 0;">
+                            {% if extracted_merchant %}{{ extracted_merchant }}{% else %}<span style="color:#9CA3AF;">Not detected</span>{% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <span style="color:#6B7280; font-size:0.85rem; font-weight:500;">Date</span>
+                        <p style="font-size:1.1rem; font-weight:600; color:#1F2937; margin:0.3rem 0;">
+                            {{ extracted_date }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Use Results Button -->
+            <a href="{{ url_for('add_expense') }}?amount={{ extracted_amount or '' }}&merchant={{ extracted_merchant or '' }}&date={{ extracted_date or '' }}" 
+               class="btn btn-primary" style="margin-top:1rem; text-align:center; text-decoration:none; display:block;">
+                ✅ Use These Details to Add Expense
+            </a>
+
+            <!-- Raw OCR Text (collapsible) -->
+            <details style="margin-top:1.5rem;">
+                <summary style="cursor:pointer; color:#4F46E5; font-weight:600; font-size:0.95rem;">
+                    View Raw OCR Text
+                </summary>
+                <pre style="background:#F3F4F6; padding:1rem; border-radius:8px; margin-top:0.5rem; font-size:0.85rem; white-space:pre-wrap; word-break:break-word; max-height:300px; overflow-y:auto;">{{ ocr_text }}</pre>
+            </details>
+        </div>
+        {% endif %}
+
+        <a href="{{ url_for('dashboard') }}" class="btn" style="background:#6B7280; color:#fff; text-align:center; text-decoration:none; margin-top:1rem;">← Back to Dashboard</a>
+    </section>
+</div>
+{% endblock %}

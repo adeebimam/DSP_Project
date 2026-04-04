@@ -4,5 +4,8 @@
 
 set -o errexit  # Exit on error
 
+# Install Tesseract OCR engine for receipt scanning
+apt-get update && apt-get install -y tesseract-ocr
+
 pip install --upgrade pip
 pip install -r requirements.txt

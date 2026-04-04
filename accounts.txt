@@ -1,0 +1,11 @@
+acc1
+admin@admin.com
+adminpassword
+
+acc2
+adeebimam@test.com
+123456789
+
+acc2
+adeeb@imam.com
+123456789

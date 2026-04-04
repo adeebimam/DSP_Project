@@ -22,9 +22,11 @@ A **cloud-based multiuser expense management system** built with Flask and Postg
 
 ### Core Functionality
 - **Multi-user authentication** — Sign up, log in, log out with secure password hashing (Werkzeug)
+- **CSRF protection** — All forms protected with Flask-WTF CSRF tokens
 - **Expense CRUD** — Add, edit, and delete expenses with category, payment method, merchant, date, and notes
 - **Dashboard** — At-a-glance summary cards showing monthly spending, budget, remaining balance, and total expenses
 - **Budget monitoring** — Set a monthly budget, see a progress bar, and receive warnings when nearing or exceeding the limit
+- **Export to CSV** — Download all your expenses as a CSV file
 
 ### Data Visualisation (Chart.js)
 -  **Pie chart** — Spending by category (current month)
@@ -32,8 +34,21 @@ A **cloud-based multiuser expense management system** built with Flask and Postg
 -  **Line chart** — Monthly spending trend (last 6 months)
 -  **Doughnut chart** — Spending by payment method (current month)
 
+### OCR Receipt Scanning (Tesseract)
+- Upload a receipt photo and automatically extract amount, merchant, and date
+- Parsed data pre-fills the Add Expense form for quick entry
+- Supports common image formats (PNG, JPG, TIFF, etc.)
+
+### AI Spending Prediction (scikit-learn)
+- Linear Regression model predicts next month's spending based on historical data
+- Shows model confidence (R² score) on the dashboard
+- Requires at least 2 months of data to generate a prediction
+
 ### Admin Panel
-- Admin users can view all registered users and delete accounts
+- **Role-based access control** — `is_admin` flag on the User model (not name-based)
+- Admin users can view all registered users, delete accounts, and promote/demote other users to/from admin
+- Admins cannot change their own role (self-demotion protection)
+- Only existing admins can assign the admin role — no hardcoded credentials
 
 ### Account Management
 - View account settings (name, email)
@@ -56,10 +71,12 @@ A **cloud-based multiuser expense management system** built with Flask and Postg
 | **Database** | PostgreSQL (Render) / SQLite (local dev)  |
 | **Frontend** | HTML5, CSS3, Jinja2 templates             |
 | **Charts**   | Chart.js (CDN)                            |
+| **OCR**      | Tesseract OCR, pytesseract, Pillow        |
+| **AI/ML**    | scikit-learn (Linear Regression), NumPy   |
+| **Security** | Werkzeug password hashing, Flask-WTF CSRF |
 | **Fonts**    | Google Fonts (Inter)                      |
-| **Auth**     | Werkzeug password hashing                 |
 | **Hosting**  | Render (Web Service + PostgreSQL)         |
-| **Testing**  | pytest                                    |
+| **Testing**  | pytest (56 tests)                         |
 
 ---
 
@@ -69,7 +86,7 @@ A **cloud-based multiuser expense management system** built with Flask and Postg
 DSP_final_project/
 ├── app.py                  # Main Flask application (routes & logic)
 ├── model.py                # SQLAlchemy database models (User, Expense)
-├── tests.py                # pytest unit tests (35 tests)
+├── tests.py                # pytest unit tests (49 tests)
 ├── requirements.txt        # Python dependencies
 ├── build.sh                # Render build script
 ├── render.yaml             # Render deployment blueprint
@@ -90,6 +107,7 @@ DSP_final_project/
     ├── edit-expense.html    # Edit existing expense form
     ├── account_settings.html# Account settings page
     ├── admin_page.html      # Admin dashboard
+    ├── scan_receipt.html    # OCR receipt scanning page
     ├── forgot_password.html # Forgot password page
     └── reset_password.html  # Reset password page
 ```
@@ -175,8 +193,9 @@ python3 -m pytest tests.py -v
 | first_name      | String(50)   | User's first name            |
 | last_name       | String(50)   | User's last name             |
 | email           | String(120)  | Unique email address         |
-| password_hash   | String(128)  | Hashed password (Werkzeug)   |
+| password_hash   | String(256)  | Hashed password (Werkzeug)   |
 | monthly_budget  | Float        | Monthly budget amount        |
+| is_admin        | Boolean      | Admin role flag (default: false) |
 
 ### Expense
 | Column          | Type         | Description                  |
@@ -205,10 +224,14 @@ python3 -m pytest tests.py -v
 | GET/POST | `/edit-expense/<id>`          | Edit an expense                 | Yes           |
 | POST   | `/delete-expense/<id>`          | Delete an expense               | Yes           |
 | POST   | `/set-budget`                   | Set monthly budget              | Yes           |
+| GET    | `/export-csv`                   | Download expenses as CSV        | Yes           |
+| GET/POST | `/scan-receipt`               | OCR receipt scanning            | Yes           |
+| GET    | `/predict-spending`             | AI spending prediction (JSON)   | Yes           |
 | GET    | `/account-settings`             | View account info               | Yes           |
 | POST   | `/delete-account`               | Delete your account             | Yes           |
 | GET    | `/admin`                        | Admin dashboard                 | Admin         |
 | POST   | `/admin-delete-user/<id>`       | Delete a user (admin only)      | Admin         |
+| POST   | `/admin-toggle-role/<id>`       | Promote/demote user role        | Admin         |
 | GET/POST | `/forgot-password`            | Forgot password flow            | No            |
 | GET/POST | `/reset-password`             | Reset password flow             | No            |
 | GET    | `/logout`                       | Log out and clear session       | Yes           |
@@ -219,12 +242,13 @@ python3 -m pytest tests.py -v
 
 - [x] Cloud database migration (PostgreSQL via Render)
 - [x] Cloud deployment (Render with Gunicorn)
-- [x] Unit testing with pytest (35 tests)
+- [x] Unit testing with pytest (56 tests)
 - [x] Secure secret key via environment variables
-- [ ] CSRF protection (Flask-WTF)
-- [ ] Receipt scanning (OCR)
-- [ ] AI-powered spending predictions
-- [ ] Export expenses to CSV/PDF
+- [x] CSRF protection (Flask-WTF)
+- [x] Receipt scanning (OCR via Tesseract)
+- [x] AI-powered spending predictions (scikit-learn)
+- [x] Export expenses to CSV
+- [ ] Export expenses to PDF
 - [ ] Email notifications for budget alerts
 
 ---

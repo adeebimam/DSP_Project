@@ -10,6 +10,7 @@ import pytest
 from app import app, db
 from model import User, Expense
 from datetime import date
+from io import BytesIO
 
 
 # ── Fixtures ──────────────────────────────────────────────
@@ -53,9 +54,9 @@ def logged_in_client(client, registered_user):
 
 @pytest.fixture
 def admin_client(client):
-    """Return a client logged in as admin."""
+    """Return a client logged in as admin (with is_admin=True)."""
     with app.app_context():
-        admin = User(first_name='Admin', last_name='User', email='admin@admin.com')
+        admin = User(first_name='Admin', last_name='User', email='admin@admin.com', is_admin=True)
         admin.set_password('adminpassword')
         db.session.add(admin)
         db.session.commit()
@@ -423,8 +424,142 @@ class TestAdmin:
         with app.app_context():
             assert User.query.get(registered_user['id']) is None
 
+    def test_admin_promote_user(self, admin_client, registered_user):
+        """POST /admin-toggle-role/<id> should promote a regular user to admin."""
+        response = admin_client.post(
+            f'/admin-toggle-role/{registered_user["id"]}',
+            follow_redirects=False
+        )
+        assert response.status_code == 302
+        with app.app_context():
+            user = User.query.get(registered_user['id'])
+            assert user.is_admin is True
+
+    def test_admin_demote_user(self, admin_client, registered_user):
+        """Toggling role twice should demote a promoted user back to regular."""
+        # Promote first
+        admin_client.post(f'/admin-toggle-role/{registered_user["id"]}')
+        # Demote
+        admin_client.post(f'/admin-toggle-role/{registered_user["id"]}')
+        with app.app_context():
+            user = User.query.get(registered_user['id'])
+            assert user.is_admin is False
+
+    def test_admin_cannot_change_own_role(self, admin_client):
+        """Admin should not be able to demote themselves."""
+        with admin_client.session_transaction() as sess:
+            admin_id = sess['user_id']
+        response = admin_client.post(
+            f'/admin-toggle-role/{admin_id}',
+            follow_redirects=True
+        )
+        assert b'cannot change your own role' in response.data
+
+    def test_non_admin_cannot_toggle_role(self, logged_in_client, registered_user):
+        """Non-admin user should be redirected when trying to toggle roles."""
+        # Create a target user
+        with app.app_context():
+            target = User(first_name='Target', last_name='User', email='target@test.com')
+            target.set_password('pass')
+            db.session.add(target)
+            db.session.commit()
+            target_id = target.id
+        response = logged_in_client.post(
+            f'/admin-toggle-role/{target_id}',
+            follow_redirects=False
+        )
+        assert response.status_code == 302
+        assert '/dashboard' in response.headers['Location']
+
+    def test_user_is_admin_default_false(self, client):
+        """New users should not be admin by default."""
+        with app.app_context():
+            user = User(first_name='New', last_name='User', email='new@test.com')
+            user.set_password('pass')
+            db.session.add(user)
+            db.session.commit()
+            assert user.is_admin is False
+
+    def test_admin_session_flag_set_on_login(self, client):
+        """Logging in as admin should set is_admin in session."""
+        with app.app_context():
+            admin = User(first_name='Super', last_name='Admin', email='super@admin.com', is_admin=True)
+            admin.set_password('adminpass')
+            db.session.add(admin)
+            db.session.commit()
+        client.post('/login', data={
+            'email': 'super@admin.com',
+            'password': 'adminpass'
+        })
+        with client.session_transaction() as sess:
+            assert sess.get('is_admin') is True
+
+    def test_regular_user_session_no_admin_flag(self, logged_in_client):
+        """Logging in as a regular user should not have is_admin=True."""
+        with logged_in_client.session_transaction() as sess:
+            assert sess.get('is_admin') is not True
+
 
 # ── Model Tests ───────────────────────────────────────────
+
+class TestCSVExport:
+    """Tests for CSV export feature."""
+
+    def test_export_csv_requires_login(self, client):
+        """GET /export-csv without login should redirect."""
+        response = client.get('/export-csv', follow_redirects=False)
+        assert response.status_code == 302
+
+    def test_export_csv_empty(self, logged_in_client):
+        """GET /export-csv with no expenses should return CSV with headers only."""
+        response = logged_in_client.get('/export-csv')
+        assert response.status_code == 200
+        assert response.content_type == 'text/csv; charset=utf-8'
+        assert b'Date,Category,Merchant,Payment Method,Amount,Note' in response.data
+
+    def test_export_csv_with_expenses(self, logged_in_client):
+        """GET /export-csv should include expense data in the CSV."""
+        logged_in_client.post('/add-expense', data={
+            'amount': '29.99',
+            'category': 'Food',
+            'date': '2026-04-01',
+            'payment_method': 'Cash',
+            'merchant': 'Tesco',
+            'note': 'Weekly shop'
+        })
+        response = logged_in_client.get('/export-csv')
+        assert response.status_code == 200
+        assert b'Tesco' in response.data
+        assert b'29.99' in response.data
+        assert b'Food' in response.data
+        assert b'Weekly shop' in response.data
+        # Check Content-Disposition header for file download
+        assert 'attachment' in response.headers['Content-Disposition']
+        assert 'expenses_' in response.headers['Content-Disposition']
+        assert '.csv' in response.headers['Content-Disposition']
+
+    def test_export_csv_only_own_expenses(self, client, registered_user):
+        """CSV export should only include the logged-in user's expenses."""
+        # Create a second user with an expense
+        with app.app_context():
+            user2 = User(first_name='Other', last_name='Person', email='other@test.com')
+            user2.set_password('pass')
+            db.session.add(user2)
+            db.session.commit()
+            expense = Expense(user_id=user2.id, amount=999, category='Secret',
+                              date=date.today(), payment_method='Cash', merchant='Hidden')
+            db.session.add(expense)
+            db.session.commit()
+        # Login as the first user
+        client.post('/login', data={
+            'email': registered_user['email'],
+            'password': registered_user['password']
+        })
+        response = client.get('/export-csv')
+        assert response.status_code == 200
+        assert b'Hidden' not in response.data
+        assert b'Secret' not in response.data
+
 
 class TestModels:
     """Tests for the database models."""
@@ -467,3 +602,138 @@ class TestModels:
             assert saved.merchant == 'Amazon'
             assert saved.note == 'Textbook'
             assert saved.user_id == user.id
+
+
+# ── Receipt Scanning (OCR) Tests ──────────────────────────
+
+class TestReceiptScanning:
+    """Tests for OCR receipt scanning feature."""
+
+    def test_scan_receipt_page_loads(self, logged_in_client):
+        """GET /scan-receipt should return 200."""
+        response = logged_in_client.get('/scan-receipt')
+        assert response.status_code == 200
+        assert b'Scan Receipt' in response.data
+
+    def test_scan_receipt_requires_login(self, client):
+        """GET /scan-receipt without login should redirect."""
+        response = client.get('/scan-receipt', follow_redirects=False)
+        assert response.status_code == 302
+
+    def test_scan_receipt_no_file(self, logged_in_client):
+        """POST /scan-receipt without a file should show error."""
+        response = logged_in_client.post('/scan-receipt',
+            data={},
+            content_type='multipart/form-data',
+            follow_redirects=True
+        )
+        assert response.status_code == 200
+        assert b'Please select a receipt image' in response.data
+
+    def test_scan_receipt_invalid_file_type(self, logged_in_client):
+        """POST /scan-receipt with non-image file should show error."""
+        data = {
+            'receipt': (BytesIO(b'not an image'), 'test.txt')
+        }
+        response = logged_in_client.post('/scan-receipt',
+            data=data,
+            content_type='multipart/form-data',
+            follow_redirects=True
+        )
+        assert response.status_code == 200
+        assert b'Invalid file type' in response.data
+
+    def test_scan_receipt_with_image(self, logged_in_client):
+        """POST /scan-receipt with a valid image should attempt OCR processing."""
+        # Create a minimal valid PNG image (1x1 white pixel)
+        from PIL import Image
+        img = Image.new('RGB', (100, 30), color='white')
+        img_bytes = BytesIO()
+        img.save(img_bytes, format='PNG')
+        img_bytes.seek(0)
+
+        data = {
+            'receipt': (img_bytes, 'receipt.png')
+        }
+        response = logged_in_client.post('/scan-receipt',
+            data=data,
+            content_type='multipart/form-data',
+            follow_redirects=True
+        )
+        assert response.status_code == 200
+        # Should show the results page (either with extracted text or empty)
+        assert b'Scan Receipt' in response.data
+
+    def test_add_expense_prefill_from_query_params(self, logged_in_client):
+        """GET /add-expense with query params should pre-fill the form."""
+        response = logged_in_client.get('/add-expense?amount=19.99&merchant=Tesco&date=2026-04-01')
+        assert response.status_code == 200
+        assert b'19.99' in response.data
+        assert b'Tesco' in response.data
+        assert b'2026-04-01' in response.data
+
+
+# ── AI Prediction Tests ───────────────────────────────────
+
+class TestAIPrediction:
+    """Tests for AI spending prediction feature."""
+
+    def test_predict_spending_requires_login(self, client):
+        """GET /predict-spending without login should redirect."""
+        response = client.get('/predict-spending', follow_redirects=False)
+        assert response.status_code == 302
+
+    def test_predict_spending_insufficient_data(self, logged_in_client):
+        """Prediction with < 2 months of data should return null prediction."""
+        response = logged_in_client.get('/predict-spending')
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['prediction'] is None
+        assert 'Need at least 2 months' in data['message']
+
+    def test_predict_spending_with_data(self, logged_in_client):
+        """Prediction with enough data should return a numeric prediction."""
+        # Add expenses across 3 different months
+        with app.app_context():
+            from datetime import date as d
+            user_id = 1  # From logged_in_client fixture
+            expenses = [
+                Expense(user_id=user_id, amount=100, category='Food',
+                        date=d(2026, 1, 15), payment_method='Cash', merchant='Shop'),
+                Expense(user_id=user_id, amount=150, category='Food',
+                        date=d(2026, 2, 15), payment_method='Cash', merchant='Shop'),
+                Expense(user_id=user_id, amount=200, category='Food',
+                        date=d(2026, 3, 15), payment_method='Cash', merchant='Shop'),
+            ]
+            for e in expenses:
+                db.session.add(e)
+            db.session.commit()
+
+        response = logged_in_client.get('/predict-spending')
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['prediction'] is not None
+        assert data['prediction'] > 0
+        assert 'next_month' in data
+        assert 'confidence' in data
+        assert data['confidence'] >= 0 and data['confidence'] <= 1
+
+    def test_predict_spending_returns_history(self, logged_in_client):
+        """Prediction response should include monthly history."""
+        with app.app_context():
+            from datetime import date as d
+            user_id = 1
+            expenses = [
+                Expense(user_id=user_id, amount=80, category='Transport',
+                        date=d(2026, 1, 10), payment_method='Card', merchant='Uber'),
+                Expense(user_id=user_id, amount=120, category='Transport',
+                        date=d(2026, 2, 10), payment_method='Card', merchant='Uber'),
+            ]
+            for e in expenses:
+                db.session.add(e)
+            db.session.commit()
+
+        response = logged_in_client.get('/predict-spending')
+        data = response.get_json()
+        assert 'history' in data
+        assert len(data['history']) >= 2

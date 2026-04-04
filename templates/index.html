@@ -19,6 +19,7 @@
             <h2 style="color:#6B7280; font-size:1.1rem; font-weight:400; margin-top:0; margin-bottom:2em;">A multiuser finance system</h2>
             <h1>Login</h1>
             <form method="POST" action="/login">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">
                     <label for="email">Email</label>
                     <input type="email" id="email" name="email" required>

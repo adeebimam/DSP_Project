@@ -16,6 +16,10 @@
         <div class="topnav-links">
             <a href="{{ url_for('dashboard') }}" class="topnav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a>
             <a href="{{ url_for('add_expense') }}" class="topnav-link {% if request.endpoint == 'add_expense' %}active{% endif %}">Add Expense</a>
+            <a href="{{ url_for('scan_receipt') }}" class="topnav-link {% if request.endpoint == 'scan_receipt' %}active{% endif %}">📷 Scan</a>
+            {% if session.get('is_admin') %}
+            <a href="{{ url_for('admin_page') }}" class="topnav-link {% if request.endpoint == 'admin_page' %}active{% endif %}" style="color:#EF4444;">🛡️ Admin</a>
+            {% endif %}
             <a href="{{ url_for('account_settings') }}" class="topnav-link {% if request.endpoint == 'account_settings' %}active{% endif %}">Account</a>
             <a href="{{ url_for('logout') }}" class="topnav-link topnav-link-logout">Logout</a>
         </div>

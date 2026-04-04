@@ -1,8 +1,12 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, Response, jsonify
+from flask_wtf.csrf import CSRFProtect
 from model import db, Expense, User
 from datetime import date, datetime
 from collections import defaultdict
+import csv
+import io
 import json
+import re
 import os
 from dotenv import load_dotenv
 
@@ -21,6 +25,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'fallback-dev-key-change-me')
 
 db.init_app(app)
+csrf = CSRFProtect(app)
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -39,6 +44,7 @@ def login_post():
     if user and user.check_password(password):
         session['user_id'] = user.id
         session['user_name'] = f"{user.first_name} {user.last_name}"
+        session['is_admin'] = user.is_admin
         return redirect(url_for('dashboard'))
     flash('Invalid email or password')
     return redirect(url_for('login'))
@@ -63,10 +69,10 @@ def signup():
 
 @app.route('/admin-delete-user/<int:user_id>', methods=['POST'])
 def admin_delete_user(user_id):
+    """Admin-only: delete a user and all their expenses."""
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    user_name = session.get('user_name', '')
-    if not user_name.lower().startswith('admin'):
+    if not session.get('is_admin'):
         return redirect(url_for('dashboard'))
     user = User.query.get(user_id)
     if user:
@@ -76,12 +82,31 @@ def admin_delete_user(user_id):
         session['admin_flash'] = 'User deleted.'
     return redirect(url_for('admin_page'))
 
-@app.route('/admin')
-def admin_page():
+@app.route('/admin-toggle-role/<int:user_id>', methods=['POST'])
+def admin_toggle_role(user_id):
+    """Admin-only: promote a user to admin or demote them back to regular user."""
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    user_name = session.get('user_name', '')
-    if not user_name.lower().startswith('admin'):
+    if not session.get('is_admin'):
+        return redirect(url_for('dashboard'))
+    # Prevent admin from demoting themselves
+    if user_id == session['user_id']:
+        session['admin_flash'] = 'You cannot change your own role.'
+        return redirect(url_for('admin_page'))
+    user = User.query.get(user_id)
+    if user:
+        user.is_admin = not user.is_admin
+        db.session.commit()
+        action = 'promoted to Admin' if user.is_admin else 'demoted to User'
+        session['admin_flash'] = f'{user.first_name} {user.last_name} has been {action}.'
+    return redirect(url_for('admin_page'))
+
+@app.route('/admin')
+def admin_page():
+    """Admin dashboard — view all users and manage roles."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if not session.get('is_admin'):
         return redirect(url_for('dashboard'))
     users = User.query.all()
     admin_flash = session.pop('admin_flash', None)
@@ -89,11 +114,12 @@ def admin_page():
 
 @app.route('/dashboard')
 def dashboard():
+    """Main dashboard — shows expenses, charts, budget, and AI prediction."""
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    user_name = session.get('user_name', 'User')
-    if user_name.lower().startswith('admin'):
+    if session.get('is_admin'):
         return redirect(url_for('admin_page'))
+    user_name = session.get('user_name', 'User')
     user_id = session['user_id']
     expenses = Expense.query.filter_by(user_id=user_id).order_by(Expense.date.desc()).all()
     current_date = date.today()
@@ -176,6 +202,184 @@ def set_budget():
     session['dashboard_flash'] = 'Budget updated successfully!'
     return redirect(url_for('dashboard'))
 
+@app.route('/export-csv')
+def export_csv():
+    """Export the current user's expenses as a CSV file."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    user_id = session['user_id']
+    expenses = Expense.query.filter_by(user_id=user_id).order_by(Expense.date.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Date', 'Category', 'Merchant', 'Payment Method', 'Amount', 'Note'])
+    for e in expenses:
+        writer.writerow([
+            e.date.strftime('%Y-%m-%d'),
+            e.category,
+            e.merchant or '',
+            e.payment_method or '',
+            f'{e.amount:.2f}',
+            e.note or ''
+        ])
+
+    csv_data = output.getvalue()
+    output.close()
+    return Response(
+        csv_data,
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename=expenses_{date.today().isoformat()}.csv'}
+    )
+
+# ── OCR Receipt Scanning ──────────────────────────────────
+
+@app.route('/scan-receipt', methods=['GET', 'POST'])
+def scan_receipt():
+    """Upload a receipt image and extract expense details using OCR."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        file = request.files.get('receipt')
+        if not file or file.filename == '':
+            flash('Please select a receipt image to upload.')
+            return render_template('scan_receipt.html')
+
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp'}
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        if ext not in allowed_extensions:
+            flash('Invalid file type. Please upload an image (PNG, JPG, etc.).')
+            return render_template('scan_receipt.html')
+
+        try:
+            from PIL import Image
+            import pytesseract
+
+            image = Image.open(file.stream)
+            raw_text = pytesseract.image_to_string(image)
+
+            # Parse amount — look for currency patterns like £12.99, $5.00, 12.99, Total: 15.50
+            amount = None
+            amount_patterns = [
+                r'(?:total|amount|sum|due|paid|balance|grand\s*total)[:\s]*[£$€]?\s*(\d+[.,]\d{2})',
+                r'[£$€]\s*(\d+[.,]\d{2})',
+                r'(\d+[.,]\d{2})',
+            ]
+            for pattern in amount_patterns:
+                matches = re.findall(pattern, raw_text, re.IGNORECASE)
+                if matches:
+                    # Take the last match (often the total at the bottom of a receipt)
+                    amount = matches[-1].replace(',', '.')
+                    break
+
+            # Parse merchant — typically the first non-empty line
+            merchant = None
+            lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
+            if lines:
+                merchant = lines[0][:100]  # Cap at 100 chars to match model
+
+            # Parse date — look for date patterns
+            receipt_date = None
+            date_patterns = [
+                r'(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})',
+                r'(\d{4}[/\-\.]\d{1,2}[/\-\.]\d{1,2})',
+            ]
+            for pattern in date_patterns:
+                match = re.search(pattern, raw_text)
+                if match:
+                    date_str = match.group(1)
+                    # Try to parse various date formats
+                    for fmt in ('%d/%m/%Y', '%m/%d/%Y', '%Y-%m-%d', '%d-%m-%Y', '%d.%m.%Y', '%Y/%m/%d'):
+                        try:
+                            receipt_date = datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
+                            break
+                        except ValueError:
+                            continue
+                    if receipt_date:
+                        break
+
+            return render_template('scan_receipt.html',
+                ocr_text=raw_text,
+                extracted_amount=amount,
+                extracted_merchant=merchant,
+                extracted_date=receipt_date or date.today().isoformat()
+            )
+
+        except Exception as e:
+            flash(f'Error processing receipt: {str(e)}')
+            return render_template('scan_receipt.html')
+
+    return render_template('scan_receipt.html')
+
+# ── AI Spending Prediction ────────────────────────────────
+
+@app.route('/predict-spending')
+def predict_spending():
+    """Use linear regression to predict next month's spending."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    expenses = Expense.query.filter_by(user_id=user_id).all()
+
+    # Aggregate monthly totals
+    monthly_totals = defaultdict(float)
+    for e in expenses:
+        key = e.date.strftime('%Y-%m')
+        monthly_totals[key] += float(e.amount)
+
+    sorted_months = sorted(monthly_totals.keys())
+
+    # Need at least 2 months of data to make a prediction
+    if len(sorted_months) < 2:
+        return jsonify({
+            'prediction': None,
+            'message': 'Need at least 2 months of expense data to generate a prediction.',
+            'history': {}
+        })
+
+    try:
+        from sklearn.linear_model import LinearRegression
+        import numpy as np
+
+        # X = month index (0, 1, 2, ...), y = monthly total
+        X = np.arange(len(sorted_months)).reshape(-1, 1)
+        y = np.array([monthly_totals[m] for m in sorted_months])
+
+        model = LinearRegression()
+        model.fit(X, y)
+
+        # Predict next month
+        next_index = np.array([[len(sorted_months)]])
+        prediction = float(model.predict(next_index)[0])
+        prediction = max(prediction, 0)  # Can't predict negative spending
+
+        # Calculate R² score for confidence
+        r2_score = float(model.score(X, y))
+
+        # Determine next month label
+        last_month = datetime.strptime(sorted_months[-1], '%Y-%m')
+        if last_month.month == 12:
+            next_month_label = f'{last_month.year + 1}-01'
+        else:
+            next_month_label = f'{last_month.year}-{last_month.month + 1:02d}'
+
+        return jsonify({
+            'prediction': round(prediction, 2),
+            'next_month': next_month_label,
+            'confidence': round(r2_score, 2),
+            'message': f'Based on {len(sorted_months)} months of data',
+            'history': {m: round(monthly_totals[m], 2) for m in sorted_months}
+        })
+
+    except Exception as e:
+        return jsonify({
+            'prediction': None,
+            'message': f'Could not generate prediction: {str(e)}',
+            'history': {}
+        })
+
 @app.route('/add-expense', methods=['GET', 'POST'])
 def add_expense():
     if 'user_id' not in session:
@@ -207,7 +411,16 @@ def add_expense():
         db.session.add(expense)
         db.session.commit()
         return redirect(url_for('dashboard'))
-    return render_template('add-expense.html', current_date=date.today().isoformat())
+    # Support pre-filling from receipt scanner via query params
+    prefill_amount = request.args.get('amount', '')
+    prefill_merchant = request.args.get('merchant', '')
+    prefill_date = request.args.get('date', date.today().isoformat())
+    return render_template('add-expense.html',
+        current_date=date.today().isoformat(),
+        amount=prefill_amount,
+        merchant=prefill_merchant,
+        date=prefill_date
+    )
 
 @app.route('/edit-expense/<int:expense_id>', methods=['GET', 'POST'])
 def edit_expense(expense_id):
