@@ -121,7 +121,15 @@
         <div class="table-header">
             <h3>Recent Expenses</h3>
             <div class="table-header-actions">
-                <a href="{{ url_for('export_csv') }}" class="btn btn-secondary btn-inline">📥 Export CSV</a>
+                <div class="export-dropdown">
+                    <button class="btn btn-secondary btn-inline export-dropdown-toggle" onclick="this.parentElement.classList.toggle('open')">
+                        📥 Export ▾
+                    </button>
+                    <div class="export-dropdown-menu">
+                        <a href="{{ url_for('export_csv') }}" class="export-dropdown-item">Export as CSV</a>
+                        <a href="{{ url_for('export_pdf') }}" class="export-dropdown-item">Export as PDF</a>
+                    </div>
+                </div>
                 <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-inline">+ Add Expense</a>
             </div>
         </div>
@@ -292,5 +300,13 @@
             document.getElementById('prediction-content').innerHTML =
                 '<p style="color:#9CA3AF;">Could not load prediction.</p>';
         });
+
+    // Close export dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const dropdown = document.querySelector('.export-dropdown');
+        if (dropdown && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('open');
+        }
+    });
 </script>
 {% endblock %}

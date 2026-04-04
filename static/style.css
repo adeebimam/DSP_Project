@@ -513,6 +513,49 @@ tr:hover td {
     flex-wrap: wrap;
 }
 
+/* ===== Export Dropdown ===== */
+.export-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.export-dropdown-toggle {
+    cursor: pointer;
+}
+
+.export-dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    min-width: 180px;
+    z-index: 50;
+    overflow: hidden;
+}
+
+.export-dropdown.open .export-dropdown-menu {
+    display: block;
+}
+
+.export-dropdown-item {
+    display: block;
+    padding: 0.7rem 1rem;
+    color: #374151;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.15s;
+}
+
+.export-dropdown-item:hover {
+    background: #EEF2FF;
+    color: #4F46E5;
+}
+
 .btn-secondary {
     background: #6B7280;
     color: #fff;

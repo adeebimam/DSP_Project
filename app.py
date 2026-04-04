@@ -231,6 +231,100 @@ def export_csv():
         headers={'Content-Disposition': f'attachment; filename=expenses_{date.today().isoformat()}.csv'}
     )
 
+@app.route('/export-pdf')
+def export_pdf():
+    """Export the current user's expenses as a styled PDF report."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    user_id = session['user_id']
+    user = User.query.get(user_id)
+    expenses = Expense.query.filter_by(user_id=user_id).order_by(Expense.date.desc()).all()
+
+    from fpdf import FPDF
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.add_page()
+
+    # Title
+    pdf.set_font('Helvetica', 'B', 18)
+    pdf.cell(0, 12, 'Expense Report', new_x='LMARGIN', new_y='NEXT', align='C')
+    pdf.set_font('Helvetica', '', 10)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 6, f'{user.first_name} {user.last_name}  |  Generated {date.today().strftime("%d %B %Y")}', new_x='LMARGIN', new_y='NEXT', align='C')
+    pdf.ln(6)
+
+    # Summary
+    current_date = date.today()
+    monthly_total = sum(
+        e.amount for e in expenses
+        if e.date.year == current_date.year and e.date.month == current_date.month
+    )
+    total_all = sum(e.amount for e in expenses)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font('Helvetica', 'B', 11)
+    pdf.cell(0, 8, f'Total Expenses: {len(expenses)}    |    This Month: GBP {monthly_total:.2f}    |    All Time: GBP {total_all:.2f}', new_x='LMARGIN', new_y='NEXT', align='C')
+    pdf.ln(4)
+
+    if expenses:
+        # Table header
+        col_widths = [24, 28, 38, 30, 24, 46]
+        headers = ['Date', 'Category', 'Merchant', 'Payment', 'Amount', 'Note']
+
+        pdf.set_font('Helvetica', 'B', 9)
+        pdf.set_fill_color(79, 70, 229)
+        pdf.set_text_color(255, 255, 255)
+        for i, header in enumerate(headers):
+            pdf.cell(col_widths[i], 8, header, border=1, fill=True, align='C')
+        pdf.ln()
+
+        # Table rows
+        pdf.set_font('Helvetica', '', 8)
+        pdf.set_text_color(0, 0, 0)
+        fill = False
+        for e in expenses:
+            if pdf.get_y() > 260:
+                pdf.add_page()
+                # Repeat header on new page
+                pdf.set_font('Helvetica', 'B', 9)
+                pdf.set_fill_color(79, 70, 229)
+                pdf.set_text_color(255, 255, 255)
+                for i, header in enumerate(headers):
+                    pdf.cell(col_widths[i], 8, header, border=1, fill=True, align='C')
+                pdf.ln()
+                pdf.set_font('Helvetica', '', 8)
+                pdf.set_text_color(0, 0, 0)
+                fill = False
+
+            if fill:
+                pdf.set_fill_color(245, 247, 250)
+            else:
+                pdf.set_fill_color(255, 255, 255)
+
+            row = [
+                e.date.strftime('%d %b %Y'),
+                e.category or '',
+                (e.merchant or '-')[:20],
+                (e.payment_method or '-'),
+                f'GBP {e.amount:.2f}',
+                (e.note or '-')[:28],
+            ]
+            for i, val in enumerate(row):
+                pdf.cell(col_widths[i], 7, val, border=1, fill=True, align='C' if i == 4 else 'L')
+            pdf.ln()
+            fill = not fill
+    else:
+        pdf.ln(10)
+        pdf.set_font('Helvetica', 'I', 11)
+        pdf.cell(0, 10, 'No expenses recorded yet.', new_x='LMARGIN', new_y='NEXT', align='C')
+
+    pdf_bytes = bytes(pdf.output())
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={'Content-Disposition': f'attachment; filename=expenses_{date.today().isoformat()}.pdf'}
+    )
+
 # ── OCR Receipt Scanning ──────────────────────────────────
 
 @app.route('/scan-receipt', methods=['GET', 'POST'])

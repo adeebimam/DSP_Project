@@ -561,6 +561,60 @@ class TestCSVExport:
         assert b'Secret' not in response.data
 
 
+class TestPDFExport:
+    """Tests for PDF export feature."""
+
+    def test_export_pdf_requires_login(self, client):
+        """GET /export-pdf without login should redirect."""
+        response = client.get('/export-pdf', follow_redirects=False)
+        assert response.status_code == 302
+
+    def test_export_pdf_empty(self, logged_in_client):
+        """GET /export-pdf with no expenses should return a valid PDF."""
+        response = logged_in_client.get('/export-pdf')
+        assert response.status_code == 200
+        assert response.content_type == 'application/pdf'
+        assert response.data[:5] == b'%PDF-'
+        assert 'attachment' in response.headers['Content-Disposition']
+        assert '.pdf' in response.headers['Content-Disposition']
+
+    def test_export_pdf_with_expenses(self, logged_in_client):
+        """GET /export-pdf with expenses should return a valid PDF file."""
+        logged_in_client.post('/add-expense', data={
+            'amount': '42.50',
+            'category': 'Books',
+            'date': '2026-04-01',
+            'payment_method': 'Online',
+            'merchant': 'Amazon',
+            'note': 'Textbook'
+        })
+        response = logged_in_client.get('/export-pdf')
+        assert response.status_code == 200
+        assert response.content_type == 'application/pdf'
+        assert response.data[:5] == b'%PDF-'
+        # PDF with expenses should be larger than an empty one
+        assert len(response.data) > 500
+
+    def test_export_pdf_only_own_expenses(self, client, registered_user):
+        """PDF export should only include the logged-in user's expenses."""
+        with app.app_context():
+            user2 = User(first_name='Other', last_name='Person', email='other@test.com')
+            user2.set_password('pass')
+            db.session.add(user2)
+            db.session.commit()
+            expense = Expense(user_id=user2.id, amount=999, category='Secret',
+                              date=date.today(), payment_method='Cash', merchant='HiddenShop')
+            db.session.add(expense)
+            db.session.commit()
+        client.post('/login', data={
+            'email': registered_user['email'],
+            'password': registered_user['password']
+        })
+        response = client.get('/export-pdf')
+        assert response.status_code == 200
+        assert b'HiddenShop' not in response.data
+
+
 class TestModels:
     """Tests for the database models."""
 

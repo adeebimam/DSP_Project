@@ -10,3 +10,4 @@ pytesseract
 Pillow
 scikit-learn
 numpy
+fpdf2

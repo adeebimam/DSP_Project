@@ -27,6 +27,7 @@ A **cloud-based multiuser expense management system** built with Flask and Postg
 - **Dashboard** — At-a-glance summary cards showing monthly spending, budget, remaining balance, and total expenses
 - **Budget monitoring** — Set a monthly budget, see a progress bar, and receive warnings when nearing or exceeding the limit
 - **Export to CSV** — Download all your expenses as a CSV file
+- **Export to PDF** — Download a styled PDF expense report with summary and table
 
 ### Data Visualisation (Chart.js)
 -  **Pie chart** — Spending by category (current month)
@@ -73,10 +74,11 @@ A **cloud-based multiuser expense management system** built with Flask and Postg
 | **Charts**   | Chart.js (CDN)                            |
 | **OCR**      | Tesseract OCR, pytesseract, Pillow        |
 | **AI/ML**    | scikit-learn (Linear Regression), NumPy   |
+| **PDF**      | fpdf2                                     |
 | **Security** | Werkzeug password hashing, Flask-WTF CSRF |
 | **Fonts**    | Google Fonts (Inter)                      |
 | **Hosting**  | Render (Web Service + PostgreSQL)         |
-| **Testing**  | pytest (56 tests)                         |
+| **Testing**  | pytest (60 tests)                         |
 
 ---
 
@@ -225,6 +227,7 @@ python3 -m pytest tests.py -v
 | POST   | `/delete-expense/<id>`          | Delete an expense               | Yes           |
 | POST   | `/set-budget`                   | Set monthly budget              | Yes           |
 | GET    | `/export-csv`                   | Download expenses as CSV        | Yes           |
+| GET    | `/export-pdf`                   | Download expenses as PDF report | Yes           |
 | GET/POST | `/scan-receipt`               | OCR receipt scanning            | Yes           |
 | GET    | `/predict-spending`             | AI spending prediction (JSON)   | Yes           |
 | GET    | `/account-settings`             | View account info               | Yes           |
@@ -242,13 +245,13 @@ python3 -m pytest tests.py -v
 
 - [x] Cloud database migration (PostgreSQL via Render)
 - [x] Cloud deployment (Render with Gunicorn)
-- [x] Unit testing with pytest (56 tests)
+- [x] Unit testing with pytest (60 tests)
 - [x] Secure secret key via environment variables
 - [x] CSRF protection (Flask-WTF)
 - [x] Receipt scanning (OCR via Tesseract)
 - [x] AI-powered spending predictions (scikit-learn)
 - [x] Export expenses to CSV
-- [ ] Export expenses to PDF
+- [x] Export expenses to PDF
 - [ ] Email notifications for budget alerts
 
 ---
