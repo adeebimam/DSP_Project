@@ -363,6 +363,7 @@ def scan_receipt():
         try:
             from PIL import Image
             import pytesseract
+            pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
             image = Image.open(file.stream)
             raw_text = pytesseract.image_to_string(image)
