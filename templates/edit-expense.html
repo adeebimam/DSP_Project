@@ -6,7 +6,7 @@
 <div class="page-wrap">
     <div class="form-page">
         <div class="form-page-header">
-            <h1>✏️ Edit Expense</h1>
+            <h1>Edit Expense</h1>
             <p class="form-page-subtitle">Update the details of this expense.</p>
         </div>
 
@@ -17,7 +17,7 @@
             <div class="form-row">
                 <div class="form-group-modern">
                     <label for="amount">
-                        <span class="label-icon">💷</span> Amount
+                        <span class="label-icon"></span> Amount
                     </label>
                     <div class="input-with-prefix">
                         <span class="input-prefix">£</span>
@@ -26,7 +26,7 @@
                 </div>
                 <div class="form-group-modern">
                     <label for="date">
-                        <span class="label-icon">📅</span> Date
+                        <span class="label-icon"></span> Date
                     </label>
                     <input type="date" id="date" name="date" value="{{ expense.date }}" required>
                 </div>
@@ -36,30 +36,30 @@
             <div class="form-row">
                 <div class="form-group-modern">
                     <label for="category">
-                        <span class="label-icon">📁</span> Category
+                        <span class="label-icon"></span> Category
                     </label>
                     <select id="category" name="category" required>
                         <option value="">Select category...</option>
-                        <option value="Food" {% if expense.category == 'Food' %}selected{% endif %}>🍔 Food</option>
-                        <option value="Transport" {% if expense.category == 'Transport' %}selected{% endif %}>🚌 Transport</option>
-                        <option value="Books" {% if expense.category == 'Books' %}selected{% endif %}>📚 Books</option>
-                        <option value="Shopping" {% if expense.category == 'Shopping' %}selected{% endif %}>🛍️ Shopping</option>
-                        <option value="Bills" {% if expense.category == 'Bills' %}selected{% endif %}>📄 Bills</option>
+                        <option value="Food" {% if expense.category == 'Food' %}selected{% endif %}>Food</option>
+                        <option value="Transport" {% if expense.category == 'Transport' %}selected{% endif %}>Transport</option>
+                        <option value="Books" {% if expense.category == 'Books' %}selected{% endif %}>Books</option>
+                        <option value="Shopping" {% if expense.category == 'Shopping' %}selected{% endif %}>Shopping</option>
+                        <option value="Bills" {% if expense.category == 'Bills' %}selected{% endif %}>Bills</option>
                         <option value="Entertainment" {% if expense.category == 'Entertainment' %}selected{% endif %}>🎬 Entertainment</option>
-                        <option value="Other" {% if expense.category == 'Other' %}selected{% endif %}>📦 Other</option>
+                        <option value="Other" {% if expense.category == 'Other' %}selected{% endif %}>Other</option>
                     </select>
                 </div>
                 <div class="form-group-modern">
                     <label for="payment_method">
-                        <span class="label-icon">💳</span> Payment Method
+                        Payment Method
                     </label>
                     <select id="payment_method" name="payment_method">
                         <option value="">Select method...</option>
-                        <option value="Cash" {% if expense.payment_method == 'Cash' %}selected{% endif %}>💵 Cash</option>
-                        <option value="Credit Card" {% if expense.payment_method == 'Credit Card' %}selected{% endif %}>💳 Credit Card</option>
-                        <option value="Debit Card" {% if expense.payment_method == 'Debit Card' %}selected{% endif %}>🏦 Debit Card</option>
-                        <option value="Online" {% if expense.payment_method == 'Online' %}selected{% endif %}>🌐 Online</option>
-                        <option value="Other" {% if expense.payment_method == 'Other' %}selected{% endif %}>📦 Other</option>
+                        <option value="Cash" {% if expense.payment_method == 'Cash' %}selected{% endif %}>Cash</option>
+                        <option value="Credit Card" {% if expense.payment_method == 'Credit Card' %}selected{% endif %}>Credit Card</option>
+                        <option value="Debit Card" {% if expense.payment_method == 'Debit Card' %}selected{% endif %}>Debit Card</option>
+                        <option value="Online" {% if expense.payment_method == 'Online' %}selected{% endif %}>Online</option>
+                        <option value="Other" {% if expense.payment_method == 'Other' %}selected{% endif %}>Other</option>
                     </select>
                 </div>
             </div>
@@ -67,7 +67,7 @@
             <!-- Merchant -->
             <div class="form-group-modern">
                 <label for="merchant">
-                    <span class="label-icon">🏪</span> Merchant
+                    <span class="label-icon"></span> Merchant
                 </label>
                 <input type="text" id="merchant" name="merchant" value="{{ expense.merchant }}" placeholder="e.g. Tesco, Amazon, Starbucks...">
             </div>
@@ -75,14 +75,14 @@
             <!-- Note -->
             <div class="form-group-modern">
                 <label for="note">
-                    <span class="label-icon">📝</span> Note <span class="label-optional">(optional)</span>
+                    <span class="label-icon"></span> Note <span class="label-optional">(optional)</span>
                 </label>
                 <textarea id="note" name="note" rows="3" placeholder="Add any extra details...">{{ expense.note }}</textarea>
             </div>
 
             <!-- Action Buttons -->
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary btn-form">💾 Save Changes</button>
+                <button type="submit" class="btn btn-primary btn-form">Save Changes</button>
                 <a href="/dashboard" class="btn btn-secondary btn-form" style="text-align:center; text-decoration:none;">Cancel</a>
             </div>
         </form>
@@ -93,7 +93,7 @@
             <p class="danger-zone-text">Permanently remove this expense from your records.</p>
             <form method="POST" action="/delete-expense/{{ expense.id }}" onsubmit="return confirm('Are you sure you want to delete this expense?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-danger-outline btn-form">🗑️ Delete Expense</button>
+                <button type="submit" class="btn btn-danger-outline btn-form">Delete Expense</button>
             </form>
         </div>
     </div>
