@@ -89,7 +89,7 @@
 
         <!-- Delete Section -->
         <div class="danger-zone-card" style="margin-top:1.5rem;">
-            <h3>⚠️ Delete Expense</h3>
+            <h3>Delete Expense</h3>
             <p class="danger-zone-text">Permanently remove this expense from your records.</p>
             <form method="POST" action="/delete-expense/{{ expense.id }}" onsubmit="return confirm('Are you sure you want to delete this expense?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

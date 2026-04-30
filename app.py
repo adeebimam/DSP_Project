@@ -363,7 +363,7 @@ def scan_receipt():
         try:
             from PIL import Image
             import pytesseract
-            pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+            pytesseract.pytesseract.tesseract_cmd = "/opt/homebrew/bin/tesseract"
 
             image = Image.open(file.stream)
             raw_text = pytesseract.image_to_string(image)
@@ -645,6 +645,74 @@ def init_db():
             else:
                 print(f"❌ Could not connect to database after {max_retries} attempts: {e}")
                 raise
+
+@app.route('/change-password', methods=['GET', 'POST'])
+def change_password():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+
+    if request.method == 'POST':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+
+        # Check current password
+        if not user.check_password(current_password):
+            flash('Current password is incorrect')
+            return redirect(url_for('change_password'))
+
+        # Check new passwords match
+        if new_password != confirm_password:
+            flash('New passwords do not match')
+            return redirect(url_for('change_password'))
+
+        # Update password
+        user.set_password(new_password)
+        db.session.commit()
+
+        flash('Password updated successfully')
+        return redirect(url_for('account_settings'))
+
+    return render_template('change_password.html')
+
+@app.route("/seed")
+def seed():
+    from seed_data import mock_expenses
+    from datetime import datetime
+
+    user = User.query.filter_by(email="adeeb@example.com").first()
+
+    if not user:
+        user = User(
+            first_name="Adeeb",
+            last_name="Imam",
+            email="adeeb@example.com",
+            monthly_budget=1200,
+            is_admin=True
+        )
+        user.set_password("password123")
+        db.session.add(user)
+        db.session.commit()
+
+    if Expense.query.filter_by(user_id=user.id).first():
+        return "Already seeded"
+
+    for item in mock_expenses:
+        expense = Expense(
+            user_id=user.id,
+            amount=item["amount"],
+            category=item["category"],
+            date=datetime.strptime(item["date"], "%Y-%m-%d").date(),
+            note=item["note"],
+            payment_method=item["payment_method"],
+            merchant=item["merchant"]
+        )
+        db.session.add(expense)
+
+    db.session.commit()
+    return "Seeded successfully!"
 
 init_db()
 
